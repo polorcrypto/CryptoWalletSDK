@@ -1,0 +1,82 @@
+// Import web3 library
+const Web3 = require('web3');
+
+class CryptoWalletSDK {
+    constructor(providerUrl) {
+        this.providerUrl = providerUrl;
+        this.web3 = new Web3(new Web3.providers.HttpProvider(providerUrl));
+    }
+
+    // Get current Ethereum network
+    async getNetwork() {
+        return await this.web3.eth.net.getId();
+    }
+
+    // Get current connected account
+    async getAccount() {
+        const accounts = await this.web3.eth.getAccounts();
+        return accounts[0]; // Return the first account
+    }
+
+    // Get Ethereum balance of an account
+    async getBalance(account) {
+        const balance = await this.web3.eth.getBalance(account);
+        return this.web3.utils.fromWei(balance, 'ether'); // Convert from Wei to Ether
+    }
+
+    // Send Ether to another address
+    async sendEther(from, to, amount) {
+        const amountInWei = this.web3.utils.toWei(amount.toString(), 'ether');
+        const txObject = {
+            from: from,
+            to: to,
+            value: amountInWei
+        };
+        const txHash = await this.web3.eth.sendTransaction(txObject);
+        return txHash;
+    }
+
+    // Sign a message
+    async signMessage(message, account) {
+        const signature = await this.web3.eth.personal.sign(message, account);
+        return signature;
+    }
+
+    // Verify signature
+    async verifySignature(message, signature, account) {
+        const signer = await this.web3.eth.personal.ecRecover(message, signature);
+        return signer.toLowerCase() === account.toLowerCase();
+    }
+}
+
+// Example usage
+const providerUrl = 'https://mainnet.infura.io/v3/your_infura_project_id';
+const walletSDK = new CryptoWalletSDK(providerUrl);
+
+// Example usage of SDK functions
+(async () => {
+    try {
+        const network = await walletSDK.getNetwork();
+        console.log('Connected to network:', network);
+
+        const account = await walletSDK.getAccount();
+        console.log('Current account:', account);
+
+        const balance = await walletSDK.getBalance(account);
+        console.log('Account balance:', balance, 'ETH');
+
+        const toAddress = '0xRecipientAddress';
+        const amountToSend = 0.1;
+        const txHash = await walletSDK.sendEther(account, toAddress, amountToSend);
+        console.log('Transaction sent:', txHash);
+
+        const message = 'Hello, world!';
+        const signature = await walletSDK.signMessage(message, account);
+        console.log('Message signed with signature:', signature);
+
+        const isVerified = await walletSDK.verifySignature(message, signature, account);
+        console.log('Signature verification result:', isVerified);
+    } catch (error) {
+        console.error('Error:', error);
+    }
+})();
